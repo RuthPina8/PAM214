@@ -1,12 +1,11 @@
-import { Text, StyleSheet, View, Pressable, TouchableOpacity } from 'react-native'
+import { Text, StyleSheet, View, Pressable, TouchableOpacity, TouchableWithoutFeedback, Switch} from 'react-native'
 import { useState } from 'react';
-import { TouchableWithoutFeedback } from 'react-native-web';
 
 export default function BotonesScreen() {
   const [accion , setAccion] = useState( 'nada');
-  const[isDisabled, setDisabled] = useState(false);
+  const [isDisabled, setDisabled] = useState(false)
 
-   return (
+    return (
       <View style={styles.container}>
 
         <text>
@@ -32,13 +31,13 @@ export default function BotonesScreen() {
         onPressIn={()=> setAccion('Pressable In')}
         onPressOut={()=> setAccion('Pressable Out')}
         onPressPress={()=> setAccion('Pressable Long')}
-        disabled={isDisabled}
+        disabled={!isDisabled}
         >
           {({pressed}) => (
             <View style={[styles.card, !pressed && styles.shadow]}>
             <View style={styles.mockImage}/>
         <text>
-         {pressed ? 'tarjeta presionada' : 'tarjeta no presionada'}
+         {pressed ? 'Tarjeta presionada' : 'Tarjeta no presionada'}
         </text>
        
         </View>
@@ -46,28 +45,33 @@ export default function BotonesScreen() {
           )}
         
       </Pressable>
-      <TouchableOpacity
-      activeOpacity={0.2}
-        onPress ={()=>setAccion ('Opacity')}
-        disabled={isDisabled}
-      >
-        <View style ={[styles.card, styles.shadow]}>
-        <View style={styles.mockImage}/>
-        <text>Esto es una imagen.</text>
-        
-        </View>
-      </TouchableOpacity>
-      <TouchableWithoutFeedback
-      disabled={isDisabled}
-        onPress={() => setAccion('Without FeedBack')}>
-          <View style={[styles.card, styles.shadow]}>
-            <View style={styles.mockImage}/>
-            <text>Esto es una imagen.</text>
-          </View>
+  <TouchableOpacity
+  disabled={!isDisabled}
+  activeOpacity={0.2}
+  onPress={() => setAccion('Opacity')}
+  >
+<View style={[styles.card, styles.shadow]}>
+  <View style={styles.mockImage} />
+  <text>
+    Esta es una tarjeta
+  </text>
 
+</View>
 
-         
-      </TouchableWithoutFeedback>
+  </TouchableOpacity>
+  <TouchableWithoutFeedback
+  disabled={!isDisabled}
+  onPress={() => setAccion('Withot Feedback')}
+  >
+  <View style={[styles.card, styles.shadow]}>
+  <View style={styles.mockImage}/>
+  <text>
+    Esta es una tarjeta
+  </text>
+
+  </View>
+  </TouchableWithoutFeedback>
+
       </View>
     )
   
