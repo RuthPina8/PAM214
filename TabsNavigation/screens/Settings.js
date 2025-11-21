@@ -1,12 +1,12 @@
 import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-export default function Settings({ navigation }) {
+export default function Settings() {
   return (
     <View style={styles.container}>
       <View style={styles.iconRow}>
         <Ionicons name="settings-outline" size={20} color="blue" />
-        <Text style={styles.title}>Configuraciones de usuario</Text>
+        <Text style={styles.title}>Configuraciones del usuario</Text>
       </View>
     </View>
   );
