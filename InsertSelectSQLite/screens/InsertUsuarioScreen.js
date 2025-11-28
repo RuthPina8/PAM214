@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, ActivityIndicator, Modal } from 'react-native';
 import { UsuarioController } from '../controllers/UsuarioController';
 
 const controller = new UsuarioController();
@@ -11,17 +11,15 @@ export default function InsertUsuarioScreen() {
   const [loading, setLoading] = useState(true);
   const [guardando, setGuardando] = useState(false);
 
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editNombre, setEditNombre] = useState('');
+  const [editId, setEditId] = useState(null);
+
   const cargarUsuarios = useCallback(async () => {
     try {
       setLoading(true);
-
       const data = await controller.obtenerUsuarios();
       setUsuarios(data);
-
-      console.log(`${data.length} usuarios cargados`);
-
-    } catch (error) {
-      Alert.alert('Error', error.message);
     } finally {
       setLoading(false);
     }
@@ -40,249 +38,204 @@ export default function InsertUsuarioScreen() {
   }, [cargarUsuarios]);
 
   const handleAgregar = async () => {
-    if (guardando) return;
+    if (!nombre.trim()) return;
+    setGuardando(true);
 
     try {
-      setGuardando(true);
-
-      const usuarioCreado = await controller.crearUsuario(nombre);
-
-      Alert.alert(
-        "Usuario Creado",
-        `${usuarioCreado.nombre} guardado con ID: ${usuarioCreado.id}`
-      );
-
+      await controller.crearUsuario(nombre);
       setNombre('');
-
-    } catch (error) {
-      Alert.alert("Error", error.message);
     } finally {
       setGuardando(false);
     }
   };
 
+  const abrirModalEdicion = (usuario) => {
+    setEditNombre(usuario.nombre);
+    setEditId(usuario.id);
+    setModalVisible(true);
+  };
+
+  const guardarEdicion = async () => {
+    if (!editNombre.trim()) return;
+
+    await controller.actualizarUsuario(editId, editNombre);
+    setModalVisible(false);
+    cargarUsuarios();
+  };
+const eliminarUsuario = (usuario) => {
+  Alert.alert(
+    "Eliminar Usuario",
+    `¿Eliminar a "${usuario.nombre}"?`,
+    [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Eliminar",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await controller.eliminarUsuario(usuario.id);
+            await cargarUsuarios();
+          } catch (e) {
+            console.log("Error eliminando:", e);
+          }
+        }
+      }
+    ]
+  );
+};
+
+
   const renderUsuario = ({ item, index }) => (
-    <View style={styles.userItem}>
+    <TouchableOpacity
+      onPress={() => abrirModalEdicion(item)}
+      onLongPress={() => eliminarUsuario(item)}
+    >
+      <View style={styles.userItem}>
+        <View style={styles.userNumber}>
+          <Text style={styles.userNumberText}>{index + 1}</Text>
+        </View>
 
-      <View style={styles.userNumber}>
-        <Text style={styles.userNumberText}>{index + 1}</Text>
+        <View style={styles.userInfo}>
+          <Text style={styles.userName}>{item.nombre}</Text>
+          <Text style={styles.userId}>ID: {item.id}</Text>
+          <Text style={styles.userDate}>
+            {new Date(item.fechaCreacion).toLocaleDateString('es-MX')}
+          </Text>
+        </View>
       </View>
-
-      <View style={styles.userInfo}>
-        <Text style={styles.userName}>{item.nombre}</Text>
-        <Text style={styles.userId}>ID: {item.id}</Text>
-
-        <Text style={styles.userDate}>
-          {new Date(item.fecha_creacion).toLocaleDateString('es-MX')}
-        </Text>
-      </View>
-
-    </View>
+    </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
-
+      
       <Text style={styles.title}>INSERT & SELECT</Text>
-      <Text style={styles.subtitle}>
-        {Platform.OS === 'web'
-          ? "WEB (LocalStorage)"
-          : `${Platform.OS.toUpperCase()} (SQLite)`
-        }
-      </Text>
 
-      <View style={styles.insertSection}>
-        <Text style={styles.sectionTitle}>Insertar Usuario</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Escribe el nombre"
+        value={nombre}
+        onChangeText={setNombre}
+      />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Escribe el nombre del usuario"
-          value={nombre}
-          onChangeText={setNombre}
-          editable={!guardando}
+      <TouchableOpacity style={styles.button} onPress={handleAgregar}>
+        <Text style={styles.buttonText}>
+          {guardando ? "Guardando..." : "Agregar Usuario"}
+        </Text>
+      </TouchableOpacity>
+
+      {loading ? (
+        <ActivityIndicator size="large" />
+      ) : (
+        <FlatList
+          data={usuarios}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderUsuario}
         />
+      )}
 
-        <TouchableOpacity
-          style={[styles.button, guardando && styles.buttonDisabled]}
-          onPress={handleAgregar}
-          disabled={guardando}
-        >
-          <Text style={styles.buttonText}>
-            {guardando ? "Guardando..." : "Agregar Usuario"}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <Modal visible={modalVisible} transparent animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Editar Usuario</Text>
 
-      <View style={styles.selectSection}>
+            <TextInput
+              style={styles.input}
+              value={editNombre}
+              onChangeText={setEditNombre}
+            />
 
-        <View style={styles.selectHeader}>
-          <Text style={styles.sectionTitle}>Lista de Usuarios</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Text style={styles.cancelButton}>Cancelar</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity style={styles.refreshButton} onPress={cargarUsuarios}>
-            <Text style={styles.refreshText}>Recargar</Text>
-          </TouchableOpacity>
-        </View>
-
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#007AFF" />
-            <Text style={styles.loadingText}>Cargando usuarios...</Text>
+              <TouchableOpacity onPress={guardarEdicion}>
+                <Text style={styles.saveButton}>Guardar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        ) : (
-          <FlatList
-            data={usuarios}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={renderUsuario}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No hay usuarios</Text>
-                <Text style={styles.emptySubtext}>Agrega el primero arriba</Text>
-              </View>
-            }
-            contentContainerStyle={usuarios.length === 0 && styles.emptyList}
-          />
-        )}
+        </View>
+      </Modal>
 
-      </View>
     </View>
   );
 }
 
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    paddingTop: 50,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: '#333',
-    marginBottom: 5,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  insertSection: {
-    backgroundColor: '#fff',
-    padding: 20,
-    marginHorizontal: 15,
-    marginBottom: 15,
-    borderRadius: 12,
-    elevation: 3,
-  },
-  selectSection: {
-    flex: 1,
-    backgroundColor: '#fff',
-    marginHorizontal: 15,
-    marginBottom: 15,
-    borderRadius: 12,
-    padding: 15,
-    elevation: 3,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#333',
-  },
+  container: { flex: 1, padding: 20, backgroundColor: "#fff" },
+
+  title: { fontSize: 24, fontWeight: "bold", textAlign: "center", marginBottom: 20 },
+
   input: {
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: "#ccc",
     borderRadius: 8,
-    padding: 15,
-    marginBottom: 12,
-    fontSize: 16,
-    backgroundColor: '#fafafa',
+    padding: 12,
+    marginBottom: 10
   },
+
   button: {
-    backgroundColor: '#007AFF',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    backgroundColor: '#ccc',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  selectHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  refreshButton: {
-    padding: 8,
-  },
-  refreshText: {
-    color: '#007AFF',
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  loadingText: {
-    marginTop: 10,
-    color: '#666',
-  },
-  userItem: {
-    flexDirection: 'row',
+    backgroundColor: "#007AFF",
     padding: 15,
-    backgroundColor: '#f9f9f9',
     borderRadius: 8,
-    marginBottom: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: '#007AFF',
+    alignItems: "center"
   },
+
+  buttonText: { color: "#fff", fontWeight: "bold" },
+
+  userItem: {
+    flexDirection: "row",
+    backgroundColor: "#f9f9f9",
+    padding: 15,
+    borderRadius: 8,
+    marginVertical: 5,
+    borderLeftWidth: 4,
+    borderLeftColor: "#007AFF"
+  },
+
   userNumber: {
     width: 35,
     height: 35,
-    borderRadius: 17.5,
-    backgroundColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
+    borderRadius: 20,
+    backgroundColor: "#007AFF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12
   },
-  userNumberText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  userInfo: {
+
+  userNumberText: { color: "#fff", fontWeight: "bold" },
+  userInfo: { flex: 1 },
+  userName: { fontSize: 16, fontWeight: "600" },
+  userId: { fontSize: 12, color: "#007AFF" },
+  userDate: { fontSize: 12, color: "#666" },
+
+  modalContainer: {
     flex: 1,
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.3)"
   },
-  userName: {
-    fontSize: 16,
-    fontWeight: '600',
+
+  modalBox: {
+    backgroundColor: "#fff",
+    margin: 30,
+    padding: 20,
+    borderRadius: 12
   },
-  userId: {
-    color: '#007AFF',
-    fontSize: 12,
-  },
-  userDate: {
-    color: '#666',
-    fontSize: 12,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyList: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  emptyText: {
+
+  modalTitle: {
     fontSize: 18,
-    color: '#999',
+    fontWeight: "600",
+    marginBottom: 10,
+    textAlign: "center"
   },
-  emptySubtext: {
-    color: '#bbb',
+
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 15
   },
+
+  cancelButton: { color: "red", fontSize: 16 },
+  saveButton: { color: "#007AFF", fontSize: 16 }
 });

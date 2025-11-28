@@ -1,7 +1,6 @@
 import { Platform } from 'react-native';
 import * as SQLite from 'expo-sqlite';
 
-
 class DatabaseService {
   constructor() {
     this.db = null;
@@ -37,7 +36,6 @@ class DatabaseService {
   async add(nombre) {
     if (Platform.OS === 'web') {
       const usuarios = await this.getAll();
-
       const nuevoUsuario = {
         id: Date.now(),
         nombre,
