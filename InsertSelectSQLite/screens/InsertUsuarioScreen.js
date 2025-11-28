@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, ActivityIndicator, Platform} from 'react-native';
-import UsuarioController from '../controllers/UsuarioController';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, ActivityIndicator, Platform } from 'react-native';
+import { UsuarioController } from '../controllers/UsuarioController';
 
 const controller = new UsuarioController();
 
-export default function UsuarioView() {
+export default function InsertUsuarioScreen() {
+
   const [usuarios, setUsuarios] = useState([]);
   const [nombre, setNombre] = useState('');
   const [loading, setLoading] = useState(true);
@@ -13,9 +14,12 @@ export default function UsuarioView() {
   const cargarUsuarios = useCallback(async () => {
     try {
       setLoading(true);
+
       const data = await controller.obtenerUsuarios();
       setUsuarios(data);
+
       console.log(`${data.length} usuarios cargados`);
+
     } catch (error) {
       Alert.alert('Error', error.message);
     } finally {
@@ -31,18 +35,27 @@ export default function UsuarioView() {
 
     init();
     controller.addListener(cargarUsuarios);
+
     return () => controller.removeListener(cargarUsuarios);
   }, [cargarUsuarios]);
 
   const handleAgregar = async () => {
     if (guardando) return;
+
     try {
       setGuardando(true);
+
       const usuarioCreado = await controller.crearUsuario(nombre);
-      Alert.alert('Usuario Creado', `${usuarioCreado.nombre} guardado con ID: ${usuarioCreado.id}`);
+
+      Alert.alert(
+        "Usuario Creado",
+        `${usuarioCreado.nombre} guardado con ID: ${usuarioCreado.id}`
+      );
+
       setNombre('');
+
     } catch (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert("Error", error.message);
     } finally {
       setGuardando(false);
     }
@@ -50,32 +63,37 @@ export default function UsuarioView() {
 
   const renderUsuario = ({ item, index }) => (
     <View style={styles.userItem}>
-      <Text style={styles.userNumber}>
+
+      <View style={styles.userNumber}>
         <Text style={styles.userNumberText}>{index + 1}</Text>
-      </Text>
+      </View>
+
       <View style={styles.userInfo}>
         <Text style={styles.userName}>{item.nombre}</Text>
         <Text style={styles.userId}>ID: {item.id}</Text>
+
         <Text style={styles.userDate}>
-          {new Date(item.fechaCreacion).toLocaleDateString('es-MX', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          })}
+          {new Date(item.fecha_creacion).toLocaleDateString('es-MX')}
         </Text>
       </View>
+
     </View>
   );
 
   return (
     <View style={styles.container}>
+
       <Text style={styles.title}>INSERT & SELECT</Text>
       <Text style={styles.subtitle}>
-        {Platform.OS === 'web' ? 'WEB (LocalStorage)' : `${Platform.OS.toUpperCase()} (SQLite)`}
+        {Platform.OS === 'web'
+          ? "WEB (LocalStorage)"
+          : `${Platform.OS.toUpperCase()} (SQLite)`
+        }
       </Text>
 
       <View style={styles.insertSection}>
         <Text style={styles.sectionTitle}>Insertar Usuario</Text>
+
         <TextInput
           style={styles.input}
           placeholder="Escribe el nombre del usuario"
@@ -83,20 +101,23 @@ export default function UsuarioView() {
           onChangeText={setNombre}
           editable={!guardando}
         />
+
         <TouchableOpacity
           style={[styles.button, guardando && styles.buttonDisabled]}
           onPress={handleAgregar}
           disabled={guardando}
         >
           <Text style={styles.buttonText}>
-            {guardando ? 'Guardando...' : 'Agregar Usuario'}
+            {guardando ? "Guardando..." : "Agregar Usuario"}
           </Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.selectSection}>
+
         <View style={styles.selectHeader}>
           <Text style={styles.sectionTitle}>Lista de Usuarios</Text>
+
           <TouchableOpacity style={styles.refreshButton} onPress={cargarUsuarios}>
             <Text style={styles.refreshText}>Recargar</Text>
           </TouchableOpacity>
@@ -121,10 +142,12 @@ export default function UsuarioView() {
             contentContainerStyle={usuarios.length === 0 && styles.emptyList}
           />
         )}
+
       </View>
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -165,8 +188,8 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
     marginBottom: 15,
+    color: '#333',
   },
   input: {
     borderWidth: 1,
@@ -194,7 +217,6 @@ const styles = StyleSheet.create({
   selectHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 10,
   },
   refreshButton: {
@@ -202,23 +224,19 @@ const styles = StyleSheet.create({
   },
   refreshText: {
     color: '#007AFF',
-    fontSize: 14,
   },
   loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 40,
   },
   loadingText: {
     marginTop: 10,
     color: '#666',
-    fontSize: 14,
   },
   userItem: {
     flexDirection: 'row',
-    backgroundColor: '#f9f9f9',
     padding: 15,
+    backgroundColor: '#f9f9f9',
     borderRadius: 8,
     marginBottom: 10,
     borderLeftWidth: 4,
@@ -236,7 +254,6 @@ const styles = StyleSheet.create({
   userNumberText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 14,
   },
   userInfo: {
     flex: 1,
@@ -244,17 +261,14 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
   },
   userId: {
-    fontSize: 12,
     color: '#007AFF',
-    marginBottom: 2,
+    fontSize: 12,
   },
   userDate: {
-    fontSize: 12,
     color: '#666',
+    fontSize: 12,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -267,10 +281,8 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     color: '#999',
-    marginBottom: 8,
   },
   emptySubtext: {
-    fontSize: 14,
     color: '#bbb',
   },
 });
